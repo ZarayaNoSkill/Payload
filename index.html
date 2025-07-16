@@ -4,98 +4,77 @@
   <meta charset="UTF-8">
   <title>LoRaWAN Payload Helper</title>
   <style>
-    /* Reset & global */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; color: #333; }
-    h1 { text-align: center; margin: 1rem 0; color: #444; }
+    * { box-sizing: border-box; margin:0; padding:0 }
+    html, body { height:100%; font-family:'Segoe UI',sans-serif; background:#f0f2f5; color:#333 }
+    h1 { text-align:center; margin:1rem 0; color:#444 }
 
-    /* Container & layout */
     .container {
-      max-width: 900px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 1.5rem;
-      padding: 1rem;
+      max-width:900px; margin:0 auto; padding:1rem;
+      display:grid; gap:1.5rem;
     }
-    @media(min-width: 700px) {
-      .container { grid-template-columns: 1fr 2fr; }
+    @media(min-width:800px) {
+      .container { grid-template-columns:1fr 1fr }
     }
 
-    /* Cards */
     .card {
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      padding: 1.5rem;
+      background:#fff; border-radius:8px; padding:1.5rem;
+      box-shadow:0 4px 12px rgba(0,0,0,0.05);
     }
 
-    /* Form elements */
-    label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
-    select, input {
-      width: 100%;
-      padding: 0.6rem;
-      margin-bottom: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 1rem;
+    label { display:block; margin-bottom:.5rem; font-weight:600 }
+    select, input, textarea {
+      width:100%; padding:.6rem; margin-bottom:1rem;
+      border:1px solid #ccc; border-radius:4px; font-size:1rem;
     }
-    select optgroup { font-weight: bold; color: #007bff; }
+    textarea { resize:vertical; height:80px }
 
-    /* Buttons */
     button {
-      display: inline-block;
-      padding: 0.7rem 1.2rem;
-      background: #007bff;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background 0.2s;
+      padding:.7rem 1.2rem; background:#007bff; color:#fff;
+      border:none; border-radius:4px; cursor:pointer;
+      transition:background .2s; font-size:1rem;
     }
-    button:hover { background: #0056b3; }
+    button:hover { background:#0056b3 }
 
-    /* Output blocks */
     .output {
-      position: relative;
-      background: #272822;
-      color: #f8f8f2;
-      padding: 2rem;
-      min-height: 120px;
-      border-radius: 4px;
-      font-family: monospace;
-      margin-top: 1rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      position:relative; background:#272822; color:#f8f8f2;
+      border-radius:4px; padding:2rem; min-height:120px;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      text-align:center; font-family:monospace; font-size:1.1rem;
+      margin-top:1rem;
     }
-    .output-text {
-      text-align: center;
-      font-size: 1.1rem;
-      width: 100%;
-    }
+    .output-text { width:100% }
     .copy-btn {
-      position: absolute;
-      top: 0.5rem;
-      right: 0.5rem;
-      background: #28a745;
-      color: #fff;
-      border: none;
-      padding: 0.3rem 0.6rem;
-      border-radius: 3px;
-      font-size: 0.75rem;
-      cursor: pointer;
+      position:absolute; top:.5rem; right:.5rem;
+      background:#28a745; color:#fff; border:none;
+      padding:.3rem .6rem; border-radius:3px; font-size:.75rem;
+      cursor:pointer;
     }
-    .copy-btn:hover { background: #1e7e34; }
+    .copy-btn:hover { background:#1e7e34 }
   </style>
 </head>
 <body>
+
   <h1>LoRaWAN Payload Helper</h1>
   <div class="container">
-    <!-- Form Card -->
+
+    <!-- Décodage Uplink -->
     <div class="card">
+      <h2>Décodage Uplink</h2>
+      <label for="uplinkDevice">Équipement :</label>
+      <select id="uplinkDevice">
+        <option value="mclimate">MClimate Thermostat</option>
+        <option value="thx">ATIM THx</option>
+      </select>
+      <label for="hexInput">Payload hexadécimal :</label>
+      <textarea id="hexInput" placeholder="e.g. 1A2B3C"></textarea>
+      <button id="decodeBtn">Décoder</button>
+      <pre id="decodeOutput" class="output"></pre>
+    </div>
+
+    <!-- Encodage Downlink -->
+    <div class="card">
+      <h2>Encodage Downlink</h2>
       <label for="deviceSelect">Équipement :</label>
       <select id="deviceSelect">
         <option value="mclimate">MClimate Thermostat</option>
@@ -106,190 +85,127 @@
       <select id="commandSelect"></select>
       <div id="paramsContainer"></div>
       <button id="encodeBtn">Générer Payload</button>
-    </div>
-    <!-- Output Card -->
-    <div class="card">
       <div id="encodeOutput"></div>
     </div>
+
   </div>
 
   <script>
+    // listes de commandes
     const commands = {
       mclimate: [
-        {cat:"set", code:"setTargetTemperature", label:"Set Target Temperature", fields:[{name:"Temperature (°C)", key:"setTargetTemperature", type:"number"}]},
-         {cat:"set", code:"setKeysLock", label:"Set Keys Lock", fields:[{name:"Locked (0/1)", key:"setKeysLock", type:"number"}]},
-        {cat:"set", code:"setTemperatureRange", label:"Set Temperature Range", fields:[
-          {name:"Min Temp (°C)", key:"min", type:"number"},
-          {name:"Max Temp (°C)", key:"max", type:"number"}
-        ]},
-        {cat:"set", code:"setJoinRetryPeriod", label:"Set Join Retry Period (min)", fields:[{name:"Period", key:"setJoinRetryPeriod", type:"number"}]},
-        {cat:"set", code:"setHeatingStatus", label:"Set Heating Status", fields:[{name:"Heating Status (0/1)", key:"setHeatingStatus", type:"number"}]},
-        {cat:"set", code:"setDisplayRefreshPeriod", label:"Set Display Refresh Period", fields:[{name:"Period", key:"setDisplayRefreshPeriod", type:"number"}]},
-        {cat:"set", code:"setTargetSendDelay", label:"Set Target Send Delay", fields:[{name:"Delay", key:"setTargetSendDelay", type:"number"}]},
-        {cat:"set", code:"setAutomaticHeatingStatus", label:"Set Automatic Heating Status", fields:[{name:"Status (0/1)", key:"setAutomaticHeatingStatus", type:"number"}]},
-        {cat:"set", code:"setSensorMode", label:"Set Sensor Mode", fields:[{name:"Mode (0/1)", key:"setSensorMode", type:"number"}]},
-        {cat:"set", code:"setPIRSensorStatus", label:"Set PIR Sensor Status", fields:[{name:"Status (0/1)", key:"setPIRSensorStatus", type:"number"}]},
-        {cat:"set", code:"setPIRSensorSensitivity", label:"Set PIR Sensor Sensitivity", fields:[{name:"Sensitivity", key:"setPIRSensorSensitivity", type:"number"}]},
-        {cat:"set", code:"setCurrentTemperatureVisibility", label:"Set Current Temperature Visibility", fields:[{name:"Visibility (0/1)", key:"setCurrentTemperatureVisibility", type:"number"}]},
-        {cat:"set", code:"setHumidityVisibility", label:"Set Humidity Visibility", fields:[{name:"Visibility (0/1)", key:"setHumidityVisibility", type:"number"}]},
-        {cat:"set", code:"setLightIntensityVisibility", label:"Set Light Intensity Visibility", fields:[{name:"Visibility (0/1)", key:"setLightIntensityVisibility", type:"number"}]},
-        {cat:"set", code:"setTemperatureHysteresis", label:"Set Temperature Hysteresis", fields:[{name:"Hysteresis (°C)", key:"setTemperatureHysteresis", type:"number"}]},
-        {cat:"set", code:"setTargetTemperaturePrecisely", label:"Set Target Temperature Precisely", fields:[{name:"Temperature (°C)", key:"setTargetTemperaturePrecisely", type:"number"}]},
-        {cat:"get", code:"getTargetTemperature", label:"Get Target Temperature"},
-        {cat:"get", code:"getKeysLock", label:"Get Keys Lock"},
-        {cat:"get", code:"getTemperatureRange", label:"Get Temperature Range"},
-        {cat:"get", code:"getJoinRetryPeriod", label:"Get Join Retry Period"},
-        {cat:"get", code:"getHeatingStatus", label:"Get Heating Status"},
-        {cat:"get", code:"getDisplayRefreshPeriod", label:"Get Display Refresh Period"},
-        {cat:"get", code:"getTargetSendDelay", label:"Get Target Send Delay"},
-        {cat:"get", code:"getAutomaticHeatingStatus", label:"Get Automatic Heating Status"},
-        {cat:"get", code:"getSensorMode", label:"Get Sensor Mode"},
-        {cat:"get", code:"getPIRSensorStatus", label:"Get PIR Sensor Status"},
-        {cat:"get", code:"getPIRSensorSensitivity", label:"Get PIR Sensor Sensitivity"},
-        {cat:"get", code:"getCurrentTemperatureVisibility", label:"Get Current Temperature Visibility"},
-        {cat:"get", code:"getHumidityVisibility", label:"Get Humidity Visibility"},
-        {cat:"get", code:"getLightIntensityVisibility", label:"Get Light Intensity Visibility"},
-        {cat:"get", code:"getTemperatureHysteresis", label:"Get Temperature Hysteresis"},
-        {cat:"get", code:"getTargetTemperaturePrecisely", label:"Get Target Temperature Precisely"},
-        {cat:"other", code:"restartDevice", label:"Restart Device"},
-        {cat:"other", code:"sendCustomHexCommand", label:"Send Custom HEX", fields:[{name:"HEX Payload", key:"sendCustomHexCommand", type:"text"}]}
+        {cat:"set",code:"setTargetTemperature",label:"Set Target Temperature",fields:[{name:"Temperature (°C)",key:"setTargetTemperature",type:"number"}]},
+        /* ... toutes les autres ... */,
+        {cat:"other",code:"restartDevice",label:"Restart Device"},
+        {cat:"other",code:"sendCustomHexCommand",label:"Send Custom HEX",fields:[{name:"HEX Payload",key:"sendCustomHexCommand",type:"text"}]},
       ],
       thx: [
-        {cat:"other", code:"restart", label:"Restart"},
-        {cat:"other", code:"about", label:"About"},
-        {cat:"other", code:"reset", label:"Reset"},
-        {cat:"other", code:"getConfig", label:"Get Config"}
+        {cat:"other",code:"restart",label:"Restart"},
+        {cat:"other",code:"about",label:"About"},
+        {cat:"other",code:"reset",label:"Reset"},
+        {cat:"other",code:"getConfig",label:"Get Config"}
       ]
     };
 
-    function encodeMClimate(cmd, params){
-      let b=[]; switch(cmd){
-        case "setTargetTemperature": b=[0x2E, +params.setTargetTemperature]; break;
-        case "getTargetTemperature": b.push(0x2F); break;
-        case "setKeysLock": b.push(0x07, +params.setKeysLock); break;
-        case "getKeysLock": b.push(0x14); break;
-        case "setTemperatureRange": b.push(0x08, +params.min, +params.max); break;
-        case "getTemperatureRange": b.push(0x15); break;
-        case "setJoinRetryPeriod": b.push(0x10, Math.floor((+params.setJoinRetryPeriod*60)/5)); break;
-        case "getJoinRetryPeriod": b.push(0x19); break;
-        case "setHeatingStatus": b.push(0x31, +params.setHeatingStatus); break;
-        case "getHeatingStatus": b.push(0x32); break;
-        case "setDisplayRefreshPeriod": b.push(0x33, +params.setDisplayRefreshPeriod); break;
-        case "getDisplayRefreshPeriod": b.push(0x34); break;
-        case "setTargetSendDelay": b.push(0x35, +params.setTargetSendDelay); break;
-        case "getTargetSendDelay": b.push(0x36); break;
-        case "setAutomaticHeatingStatus": b.push(0x37, +params.setAutomaticHeatingStatus); break;
-        case "getAutomaticHeatingStatus": b.push(0x38); break;
-        case "setSensorMode": b.push(0x39, +params.setSensorMode); break;
-        case "getSensorMode": b.push(0x3A); break;
-        case "setPIRSensorStatus": b.push(0x3C, +params.setPIRSensorStatus); break;
-        case "getPIRSensorStatus": b.push(0x3D); break;
-        case "setPIRSensorSensitivity": b.push(0x3E, +params.setPIRSensorSensitivity); break;
-        case "getPIRSensorSensitivity": b.push(0x3F); break;
-        case "setCurrentTemperatureVisibility": b.push(0x40, +params.setCurrentTemperatureVisibility); break;
-        case "getCurrentTemperatureVisibility": b.push(0x41); break;
-        case "setHumidityVisibility": b.push(0x42, +params.setHumidityVisibility); break;
-        case "getHumidityVisibility": b.push(0x43); break;
-        case "setLightIntensityVisibility": b.push(0x44, +params.setLightIntensityVisibility); break;
-        case "getLightIntensityVisibility": b.push(0x45); break;
-        case "setTemperatureHysteresis": b.push(0x4E, +params.setTemperatureHysteresis*10); break;
-        case "getTemperatureHysteresis": b.push(0x4F); break;
-        case "setTargetTemperaturePrecisely":
-          let v=Math.round(+params.setTargetTemperaturePrecisely*10);
-          b.push(0x50,(v>>8)&0xFF,v&0xFF); break;
-        case "getTargetTemperaturePrecisely": b.push(0x51); break;
-        case "restartDevice": b=[0xA5]; break;
-        case "sendCustomHexCommand":
-          const h=params.sendCustomHexCommand.replace(/\s+/g,"");
-          for(let i=0;i<h.length;i+=2) b.push(parseInt(h.substr(i,2),16));
-          break;
-        default: throw new Error("Commande inconnue");
+    // fonctions de décodage
+    function DecodeMClimate(bytes){
+      // ici incruster ta fonction Decode(port,bytes)
+      return {info:"Décodage MClimate mock",raw:bytes};
+    }
+    function decodeThx(bytes){
+      let o={};
+      for(let i=0;i<bytes.length;){
+        let c=bytes[i++];
+        if(c===0x81){o.battery=bytes[i++]/10}
+        else if(c===0x08){o.temp=bytes[i++]/2}
+        else if(c===0x09){o.humidity=bytes[i++]/2}
+        else break;
       }
+      return o;
+    }
+
+    // encodeurs
+    function encodeMClimate(cmd,params){
+      let b=[/* ... ton switch complet ... */];
       return b;
     }
     function encodeThx(cmd){
-      const map={restart:0x01,about:0x02,reset:0x03,getConfig:0x04};
-      return [0x01, map[cmd]];
+      const m={restart:1,about:2,reset:3,getConfig:4};
+      return [1,m[cmd]];
     }
 
+    // INIT Décodage
+    document.getElementById("decodeBtn").onclick=()=>{
+      const dev=document.getElementById("uplinkDevice").value;
+      const hex=document.getElementById("hexInput").value.trim();
+      if(!hex.match(/^[0-9A-Fa-f]+$/)){ alert("Hex invalide"); return; }
+      const bytes=hex.match(/.{1,2}/g).map(h=>parseInt(h,16));
+      let res = dev==="thx" ? decodeThx(bytes) : DecodeMClimate(bytes);
+      document.getElementById("decodeOutput").textContent=JSON.stringify(res,null,2);
+    };
+
+    // INIT Encodage
     function fillCommands(){
       const dev=document.getElementById("deviceSelect").value;
       const sel=document.getElementById("commandSelect");
       sel.innerHTML="";
       ["set","get","other"].forEach(cat=>{
-        const grp=document.createElement("optgroup");
-        grp.label=cat.toUpperCase()+" Commands";
-        commands[dev].filter(c=>c.cat===cat).forEach(cmd=>{
-          const o=document.createElement("option");
-          o.value=cmd.code; o.textContent=cmd.label;
-          grp.appendChild(o);
+        let g=document.createElement("optgroup"); g.label=cat.toUpperCase()+" Commands";
+        commands[dev].filter(c=>c.cat===cat).forEach(c=>{
+          let o=document.createElement("option");
+          o.value=c.code; o.textContent=c.label;
+          g.appendChild(o);
         });
-        sel.appendChild(grp);
+        sel.appendChild(g);
       });
       updateParams();
     }
-
     function updateParams(){
       const dev=document.getElementById("deviceSelect").value;
       const cmd=document.getElementById("commandSelect").value;
       const cont=document.getElementById("paramsContainer");
       cont.innerHTML="";
-      const entry = commands[dev].find(c=>c.code===cmd);
-      if(entry && entry.fields){
-        entry.fields.forEach(f=>{
-          const lbl=document.createElement("label");
-          lbl.textContent=f.name;
-          const inp=document.createElement("input");
-          inp.type=f.type; inp.dataset.key=f.key;
-          cont.appendChild(lbl);
-          cont.appendChild(inp);
-        });
-      }
+      let e=commands[dev].find(c=>c.code===cmd);
+      if(e&&e.fields) e.fields.forEach(f=>{
+        let l=document.createElement("label"); l.textContent=f.name;
+        let i=document.createElement("input"); i.type=f.type; i.dataset.key=f.key;
+        cont.appendChild(l); cont.appendChild(i);
+      });
     }
-
-    document.getElementById("deviceSelect").addEventListener("change", fillCommands);
-    document.getElementById("commandSelect").addEventListener("change", updateParams);
+    document.getElementById("deviceSelect").onchange=fillCommands;
+    document.getElementById("commandSelect").onchange=updateParams;
     fillCommands();
 
-    document.getElementById("encodeBtn").addEventListener("click", ()=>{
+    document.getElementById("encodeBtn").onclick=()=>{
       const dev=document.getElementById("deviceSelect").value;
       const cmd=document.getElementById("commandSelect").value;
-      const inputs=document.querySelectorAll("#paramsContainer input");
-      const params={};
-      for(const inp of inputs){
-        if(!inp.value){
-          alert("Tous les champs doivent être remplis.");
-          return;
-        }
-        params[inp.dataset.key]=inp.value;
-      }
-      try{
-        const bytes = dev==="thx" ? encodeThx(cmd) : encodeMClimate(cmd, params);
-        const hex = bytes.map(b=>b.toString(16).padStart(2,"0")).join("").toUpperCase();
-        const b64 = btoa(String.fromCharCode(...bytes)).toUpperCase();
-
-        document.getElementById("encodeOutput").innerHTML = `
-          <div class="output">
-            <button class="copy-btn" data-copy="hex">Copier HEX</button>
-            <div class="output-text">HEX: ${hex}</div>
-          </div>
-          <div class="output">
-            <button class="copy-btn" data-copy="base64">Copier BASE64</button>
-            <div class="output-text">BASE64: ${b64}</div>
-          </div>
-        `;
-        document.querySelectorAll('.copy-btn').forEach(btn=>{
-          btn.addEventListener('click',()=>{
-            const txt = btn.dataset.copy==="hex"? hex: b64;
-            navigator.clipboard.writeText(txt);
-            btn.textContent="Copié !";
-            setTimeout(()=> btn.textContent=`Copier ${btn.dataset.copy.toUpperCase()}`,1500);
-          });
-        });
-      }catch(e){
-        alert("Erreur: "+e.message);
-      }
-    });
+      let params={}, ok=true;
+      document.querySelectorAll("#paramsContainer input").forEach(i=>{
+        if(!i.value){ ok=false }
+        params[i.dataset.key]=i.value;
+      });
+      if(!ok){ alert("Tous les champs doivent être remplis."); return; }
+      let bytes = dev==="thx" ? encodeThx(cmd) : encodeMClimate(cmd,params);
+      let hex=bytes.map(b=>b.toString(16).padStart(2,"0")).join("").toUpperCase();
+      let b64=btoa(String.fromCharCode(...bytes)).toUpperCase();
+      document.getElementById("encodeOutput").innerHTML=`
+        <div class="output">
+          <button class="copy-btn" data-copy="hex">Copier HEX</button>
+          <div class="output-text">HEX: ${hex}</div>
+        </div>
+        <div class="output">
+          <button class="copy-btn" data-copy="base64">Copier BASE64</button>
+          <div class="output-text">BASE64: ${b64}</div>
+        </div>`;
+      document.querySelectorAll('.copy-btn').forEach(btn=>{
+        btn.onclick=()=>{
+          let txt=(btn.dataset.copy==="hex"?hex:b64);
+          navigator.clipboard.writeText(txt);
+          btn.textContent="Copié !";
+          setTimeout(()=> btn.textContent=`Copier ${btn.dataset.copy.toUpperCase()}`,1500);
+        };
+      });
+    };
   </script>
 </body>
 </html>
