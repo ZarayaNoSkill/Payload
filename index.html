@@ -7,7 +7,6 @@
     * { box-sizing: border-box; margin:0; padding:0 }
     html, body { height:100%; font-family:'Segoe UI',sans-serif; background:#f0f2f5; color:#333 }
     h1 { text-align:center; margin:1rem 0; color:#444 }
-
     .container {
       max-width:900px; margin:0 auto; padding:1rem;
       display:grid; gap:1.5rem;
@@ -15,26 +14,22 @@
     @media(min-width:800px) {
       .container { grid-template-columns:1fr 1fr }
     }
-
     .card {
       background:#fff; border-radius:8px; padding:1.5rem;
       box-shadow:0 4px 12px rgba(0,0,0,0.05);
     }
-
     label { display:block; margin-bottom:.5rem; font-weight:600 }
     select, input, textarea {
       width:100%; padding:.6rem; margin-bottom:1rem;
       border:1px solid #ccc; border-radius:4px; font-size:1rem;
     }
     textarea { resize:vertical; height:80px }
-
     button {
       padding:.7rem 1.2rem; background:#007bff; color:#fff;
       border:none; border-radius:4px; cursor:pointer;
       transition:background .2s; font-size:1rem;
     }
     button:hover { background:#0056b3 }
-
     .output {
       position:relative; background:#272822; color:#f8f8f2;
       border-radius:4px; padding:2rem; min-height:120px;
@@ -80,7 +75,6 @@
         <option value="mclimate">MClimate Thermostat</option>
         <option value="thx">ATIM THx</option>
       </select>
-
       <label for="commandSelect">Commande :</label>
       <select id="commandSelect"></select>
       <div id="paramsContainer"></div>
@@ -91,13 +85,45 @@
   </div>
 
   <script>
-    // listes de commandes
     const commands = {
       mclimate: [
         {cat:"set",code:"setTargetTemperature",label:"Set Target Temperature",fields:[{name:"Temperature (°C)",key:"setTargetTemperature",type:"number"}]},
-        /* ... toutes les autres ... */,
+        {cat:"set",code:"setKeysLock",label:"Set Keys Lock",fields:[{name:"Locked (0/1)",key:"setKeysLock",type:"number"}]},
+        {cat:"set",code:"setTemperatureRange",label:"Set Temperature Range",fields:[
+          {name:"Min Temp (°C)",key:"min",type:"number"},
+          {name:"Max Temp (°C)",key:"max",type:"number"}
+        ]},
+        {cat:"set",code:"setJoinRetryPeriod",label:"Set Join Retry Period (min)",fields:[{name:"Period",key:"setJoinRetryPeriod",type:"number"}]},
+        {cat:"set",code:"setHeatingStatus",label:"Set Heating Status",fields:[{name:"Heating Status (0/1)",key:"setHeatingStatus",type:"number"}]},
+        {cat:"set",code:"setDisplayRefreshPeriod",label:"Set Display Refresh Period",fields:[{name:"Period",key:"setDisplayRefreshPeriod",type:"number"}]},
+        {cat:"set",code:"setTargetSendDelay",label:"Set Target Send Delay",fields:[{name:"Delay",key:"setTargetSendDelay",type:"number"}]},
+        {cat:"set",code:"setAutomaticHeatingStatus",label:"Set Automatic Heating Status",fields:[{name:"Status (0/1)",key:"setAutomaticHeatingStatus",type:"number"}]},
+        {cat:"set",code:"setSensorMode",label:"Set Sensor Mode",fields:[{name:"Mode (0/1)",key:"setSensorMode",type:"number"}]},
+        {cat:"set",code:"setPIRSensorStatus",label:"Set PIR Sensor Status",fields:[{name:"Status (0/1)",key:"setPIRSensorStatus",type:"number"}]},
+        {cat:"set",code:"setPIRSensorSensitivity",label:"Set PIR Sensor Sensitivity",fields:[{name:"Sensitivity",key:"setPIRSensorSensitivity",type:"number"}]},
+        {cat:"set",code:"setCurrentTemperatureVisibility",label:"Set Current Temperature Visibility",fields:[{name:"Visibility (0/1)",key:"setCurrentTemperatureVisibility",type:"number"}]},
+        {cat:"set",code:"setHumidityVisibility",label:"Set Humidity Visibility",fields:[{name:"Visibility (0/1)",key:"setHumidityVisibility",type:"number"}]},
+        {cat:"set",code:"setLightIntensityVisibility",label:"Set Light Intensity Visibility",fields:[{name:"Visibility (0/1)",key:"setLightIntensityVisibility",type:"number"}]},
+        {cat:"set",code:"setTemperatureHysteresis",label:"Set Temperature Hysteresis",fields:[{name:"Hysteresis (°C)",key:"setTemperatureHysteresis",type:"number"}]},
+        {cat:"set",code:"setTargetTemperaturePrecisely",label:"Set Target Temperature Precisely",fields:[{name:"Temperature (°C)",key:"setTargetTemperaturePrecisely",type:"number"}]},
+        {cat:"get",code:"getTargetTemperature",label:"Get Target Temperature"},
+        {cat:"get",code:"getKeysLock",label:"Get Keys Lock"},
+        {cat:"get",code:"getTemperatureRange",label:"Get Temperature Range"},
+        {cat:"get",code:"getJoinRetryPeriod",label:"Get Join Retry Period"},
+        {cat:"get",code:"getHeatingStatus",label:"Get Heating Status"},
+        {cat:"get",code:"getDisplayRefreshPeriod",label:"Get Display Refresh Period"},
+        {cat:"get",code:"getTargetSendDelay",label:"Get Target Send Delay"},
+        {cat:"get",code:"getAutomaticHeatingStatus",label:"Get Automatic Heating Status"},
+        {cat:"get",code:"getSensorMode",label:"Get Sensor Mode"},
+        {cat:"get",code:"getPIRSensorStatus",label:"Get PIR Sensor Status"},
+        {cat:"get",code:"getPIRSensorSensitivity",label:"Get PIR Sensor Sensitivity"},
+        {cat:"get",code:"getCurrentTemperatureVisibility",label:"Get Current Temperature Visibility"},
+        {cat:"get",code:"getHumidityVisibility",label:"Get Humidity Visibility"},
+        {cat:"get",code:"getLightIntensityVisibility",label:"Get Light Intensity Visibility"},
+        {cat:"get",code:"getTemperatureHysteresis",label:"Get Temperature Hysteresis"},
+        {cat:"get",code:"getTargetTemperaturePrecisely",label:"Get Target Temperature Precisely"},
         {cat:"other",code:"restartDevice",label:"Restart Device"},
-        {cat:"other",code:"sendCustomHexCommand",label:"Send Custom HEX",fields:[{name:"HEX Payload",key:"sendCustomHexCommand",type:"text"}]},
+        {cat:"other",code:"sendCustomHexCommand",label:"Send Custom HEX",fields:[{name:"HEX Payload",key:"sendCustomHexCommand",type:"text"}]}
       ],
       thx: [
         {cat:"other",code:"restart",label:"Restart"},
@@ -107,26 +133,138 @@
       ]
     };
 
-    // fonctions de décodage
-    function DecodeMClimate(bytes){
-      // ici incruster ta fonction Decode(port,bytes)
-      return {info:"Décodage MClimate mock",raw:bytes};
-    }
-    function decodeThx(bytes){
-      let o={};
-      for(let i=0;i<bytes.length;){
-        let c=bytes[i++];
-        if(c===0x81){o.battery=bytes[i++]/10}
-        else if(c===0x08){o.temp=bytes[i++]/2}
-        else if(c===0x09){o.humidity=bytes[i++]/2}
-        else break;
+    // MClimate decodeur
+    function Decode(port, bytes) {
+      try {
+        var data = {};
+        function toBool(value) { return value == '1'; }
+        function calculateTemperature(rawData) { return (rawData - 400) / 10; }
+        function calculateHumidity(rawData) { return (rawData * 100) / 256; }
+        function decbin(number) {
+          if (number < 0) number = 0xFFFFFFFF + number + 1;
+          number = number.toString(2);
+          return "00000000".substr(number.length) + number;
+        }
+        function handleKeepalive(bytes, data) {
+          var tempRaw = (bytes[1] << 8) | bytes[2];
+          var temperature = calculateTemperature(tempRaw);
+          var humidity = calculateHumidity(bytes[3]);
+          var batteryVoltage = ((bytes[4] << 8) | bytes[5]) / 1000;
+          var targetTemperature, powerSourceStatus, lux, pir;
+          if (bytes[0] == 1) {
+            targetTemperature = bytes[6];
+            powerSourceStatus = bytes[7];
+            lux = (bytes[8] << 8) | bytes[9];
+            pir = toBool(bytes[10]);
+          } else {
+            targetTemperature = parseInt(decbin(bytes[6]) + decbin(bytes[7]), 2) / 10;
+            powerSourceStatus = bytes[8];
+            lux = (bytes[9] << 8) | bytes[10];
+            pir = toBool(bytes[11]);
+          }
+          data.sensorTemperature = Number(temperature.toFixed(2));
+          data.relativeHumidity = Number(humidity.toFixed(2));
+          data.batteryVoltage = Number(batteryVoltage.toFixed(3));
+          data.targetTemperature = targetTemperature;
+          data.powerSourceStatus = powerSourceStatus;
+          data.lux = lux;
+          data.pir = pir;
+          return data;
+        }
+        function handleResponse(bytes, data, keepaliveLength) {
+          var commands = bytes.map(b=>("0"+b.toString(16)).substr(-2));
+          commands = commands.slice(0, -keepaliveLength);
+          commands.map((c,i)=>{
+            let cmdLen=0;
+            switch(c){
+              case '04':
+                cmdLen=2;
+                data.deviceVersions={hardware:Number(commands[i+1]),software:Number(commands[i+2])};
+                break;
+              // ... autres cas ...
+            }
+            commands.splice(i,cmdLen);
+          });
+          return data;
+        }
+        if(bytes[0]==1||bytes[0]==129){
+          data=handleKeepalive(bytes,data);
+        } else {
+          let keepaliveLength=11;
+          let pot=bytes.slice(-12);
+          if(pot[0]==129) keepaliveLength=12;
+          data=handleResponse(bytes,data,keepaliveLength);
+          bytes=bytes.slice(-keepaliveLength);
+          data=handleKeepalive(bytes,data);
+        }
+        return {data:data};
+      } catch(e){
+        throw new Error('Unhandled data');
       }
-      return o;
     }
 
-    // encodeurs
+    // THx decodeur
+    function decodeThx(bytes){
+      var decoded={};
+      for(var i=0;i<bytes.length;){
+        var ch=bytes[i++];
+        if(ch===0x81){
+          decoded.battery=bytes[i++]/10;
+        } else if(ch===0x08){
+          decoded.temperature=bytes[i++]/2;
+        } else if(ch===0x09){
+          decoded.humidity=bytes[i++]/2;
+        } else break;
+      }
+      return decoded;
+    }
+
+    // Encodeurs
     function encodeMClimate(cmd,params){
-      let b=[/* ... ton switch complet ... */];
+      var b=[];
+      switch(cmd){
+        case "setTargetTemperature": b=[0x2E,parseInt(params.setTargetTemperature)]; break;
+        case "getTargetTemperature": b=[0x2F]; break;
+        case "setKeysLock": b=[0x07,parseInt(params.setKeysLock)]; break;
+        case "getKeysLock": b=[0x14]; break;
+        case "setTemperatureRange": b=[0x08,parseInt(params.min),parseInt(params.max)]; break;
+        case "getTemperatureRange": b=[0x15]; break;
+        case "setJoinRetryPeriod":
+          let p=Math.floor((parseInt(params.setJoinRetryPeriod)*60)/5);
+          b=[0x10,p]; break;
+        case "getJoinRetryPeriod": b=[0x19]; break;
+        case "setHeatingStatus": b=[0x31,parseInt(params.setHeatingStatus)]; break;
+        case "getHeatingStatus": b=[0x32]; break;
+        case "setDisplayRefreshPeriod": b=[0x33,parseInt(params.setDisplayRefreshPeriod)]; break;
+        case "getDisplayRefreshPeriod": b=[0x34]; break;
+        case "setTargetSendDelay": b=[0x35,parseInt(params.setTargetSendDelay)]; break;
+        case "getTargetSendDelay": b=[0x36]; break;
+        case "setAutomaticHeatingStatus": b=[0x37,parseInt(params.setAutomaticHeatingStatus)]; break;
+        case "getAutomaticHeatingStatus": b=[0x38]; break;
+        case "setSensorMode": b=[0x39,parseInt(params.setSensorMode)]; break;
+        case "getSensorMode": b=[0x3A]; break;
+        case "setPIRSensorStatus": b=[0x3C,parseInt(params.setPIRSensorStatus)]; break;
+        case "getPIRSensorStatus": b=[0x3D]; break;
+        case "setPIRSensorSensitivity": b=[0x3E,parseInt(params.setPIRSensorSensitivity)]; break;
+        case "getPIRSensorSensitivity": b=[0x3F]; break;
+        case "setCurrentTemperatureVisibility": b=[0x40,parseInt(params.setCurrentTemperatureVisibility)]; break;
+        case "getCurrentTemperatureVisibility": b=[0x41]; break;
+        case "setHumidityVisibility": b=[0x42,parseInt(params.setHumidityVisibility)]; break;
+        case "getHumidityVisibility": b=[0x43]; break;
+        case "setLightIntensityVisibility": b=[0x44,parseInt(params.setLightIntensityVisibility)]; break;
+        case "getLightIntensityVisibility": b=[0x45]; break;
+        case "setTemperatureHysteresis": b=[0x4E,parseInt(params.setTemperatureHysteresis*10)]; break;
+        case "getTemperatureHysteresis": b=[0x4F]; break;
+        case "setTargetTemperaturePrecisely":
+          let v=Math.round(parseFloat(params.setTargetTemperaturePrecisely)*10);
+          b=[0x50,(v>>8)&0xFF,v&0xFF]; break;
+        case "getTargetTemperaturePrecisely": b=[0x51]; break;
+        case "restartDevice": b=[0xA5]; break;
+        case "sendCustomHexCommand":
+          let h=params.sendCustomHexCommand.replace(/\s+/g,"");
+          for(let i=0;i<h.length;i+=2) b.push(parseInt(h.substr(i,2),16));
+          break;
+      }
       return b;
     }
     function encodeThx(cmd){
@@ -134,29 +272,29 @@
       return [1,m[cmd]];
     }
 
-    // INIT Décodage
-    document.getElementById("decodeBtn").onclick=()=>{
+    // Décodage
+    document.getElementById("decodeBtn").onclick = ()=>{
       const dev=document.getElementById("uplinkDevice").value;
       const hex=document.getElementById("hexInput").value.trim();
-      if(!hex.match(/^[0-9A-Fa-f]+$/)){ alert("Hex invalide"); return; }
+      if(!hex.match(/^[0-9A-Fa-f]+$/)){ return alert("Hex invalide"); }
       const bytes=hex.match(/.{1,2}/g).map(h=>parseInt(h,16));
-      let res = dev==="thx" ? decodeThx(bytes) : DecodeMClimate(bytes);
-      document.getElementById("decodeOutput").textContent=JSON.stringify(res,null,2);
+      let res = dev==="thx" ? decodeThx(bytes) : Decode(1,bytes);
+      document.getElementById("decodeOutput").textContent = JSON.stringify(res,null,2);
     };
 
-    // INIT Encodage
+    // Encodage
     function fillCommands(){
       const dev=document.getElementById("deviceSelect").value;
       const sel=document.getElementById("commandSelect");
       sel.innerHTML="";
       ["set","get","other"].forEach(cat=>{
-        let g=document.createElement("optgroup"); g.label=cat.toUpperCase()+" Commands";
+        const grp=document.createElement("optgroup");
+        grp.label = cat.toUpperCase()+" Commands";
         commands[dev].filter(c=>c.cat===cat).forEach(c=>{
-          let o=document.createElement("option");
-          o.value=c.code; o.textContent=c.label;
-          g.appendChild(o);
+          const o=document.createElement("option");
+          o.value=c.code; o.textContent=c.label; grp.appendChild(o);
         });
-        sel.appendChild(g);
+        sel.appendChild(grp);
       });
       updateParams();
     }
@@ -165,29 +303,29 @@
       const cmd=document.getElementById("commandSelect").value;
       const cont=document.getElementById("paramsContainer");
       cont.innerHTML="";
-      let e=commands[dev].find(c=>c.code===cmd);
+      const e=commands[dev].find(c=>c.code===cmd);
       if(e&&e.fields) e.fields.forEach(f=>{
-        let l=document.createElement("label"); l.textContent=f.name;
-        let i=document.createElement("input"); i.type=f.type; i.dataset.key=f.key;
+        const l=document.createElement("label"); l.textContent=f.name;
+        const i=document.createElement("input"); i.type=f.type; i.dataset.key=f.key;
         cont.appendChild(l); cont.appendChild(i);
       });
     }
-    document.getElementById("deviceSelect").onchange=fillCommands;
-    document.getElementById("commandSelect").onchange=updateParams;
+    document.getElementById("deviceSelect").onchange = fillCommands;
+    document.getElementById("commandSelect").onchange = updateParams;
     fillCommands();
 
-    document.getElementById("encodeBtn").onclick=()=>{
+    document.getElementById("encodeBtn").onclick = ()=>{
       const dev=document.getElementById("deviceSelect").value;
       const cmd=document.getElementById("commandSelect").value;
-      let params={}, ok=true;
-      document.querySelectorAll("#paramsContainer input").forEach(i=>{
-        if(!i.value){ ok=false }
-        params[i.dataset.key]=i.value;
-      });
-      if(!ok){ alert("Tous les champs doivent être remplis."); return; }
-      let bytes = dev==="thx" ? encodeThx(cmd) : encodeMClimate(cmd,params);
-      let hex=bytes.map(b=>b.toString(16).padStart(2,"0")).join("").toUpperCase();
-      let b64=btoa(String.fromCharCode(...bytes)).toUpperCase();
+      const inputs=document.querySelectorAll("#paramsContainer input");
+      const params={};
+      for(const inp of inputs){
+        if(!inp.value){ return alert("Tous les champs doivent être remplis."); }
+        params[inp.dataset.key]=inp.value;
+      }
+      const bytes = dev==="thx" ? encodeThx(cmd) : encodeMClimate(cmd,params);
+      const hex = bytes.map(b=>b.toString(16).padStart(2,"0")).join("").toUpperCase();
+      const b64 = btoa(String.fromCharCode(...bytes)).toUpperCase();
       document.getElementById("encodeOutput").innerHTML=`
         <div class="output">
           <button class="copy-btn" data-copy="hex">Copier HEX</button>
@@ -199,7 +337,7 @@
         </div>`;
       document.querySelectorAll('.copy-btn').forEach(btn=>{
         btn.onclick=()=>{
-          let txt=(btn.dataset.copy==="hex"?hex:b64);
+          const txt = btn.dataset.copy==="hex"? hex : b64;
           navigator.clipboard.writeText(txt);
           btn.textContent="Copié !";
           setTimeout(()=> btn.textContent=`Copier ${btn.dataset.copy.toUpperCase()}`,1500);
